@@ -8,7 +8,8 @@ def detect(src):
         gray=cv2.cvtColor(src,cv2.COLOR_BGR2GRAY)
     else:
         gray=src
-    cols,rows=src.shape[:2]
+    rows,cols=src.shape[:2]
+    print(cols,rows)
     thresh=250
     kernel=cv2.getStructuringElement(cv2.MORPH_RECT,(1,5),(0,2))
     while thresh>=50:
@@ -23,8 +24,8 @@ def detect(src):
             box=cv2.boxPoints(rect)
             box=np.int0(box)
             
-            #if box[0,0]<cols/20 or box[0,0]>cols*19.9/20:
-            #    continue
+            if box[0,0]<cols/20 or box[0,0]>cols*19/20:
+                continue
             #if box[0,1]<rows*3/5:
             #    continue
             w=np.sqrt(np.power((box[0,0]-box[1,0]),2)+np.power((box[0,1]-box[1,1]),2))
@@ -34,14 +35,13 @@ def detect(src):
             if w*h<200:
                 continue            
             [vx,vy,x,y] = cv2.fitLine(contours[i],cv2.DIST_L2,0,0.01,0.01)
-            print(vx,vy,x,y)
             if vx==0:
                 slidRitio=0xFFFF
             else:
                 slidRitio=vy/vx
             if slidRitio<0.25 and slidRitio>-0.25:
                 continue
-            print(rect)
+            print(box)
             lefty = int((-y/slidRitio) + x)
             righty = int(((rows-y)/slidRitio)+x)
             print(lefty,righty,x,y)
