@@ -76,10 +76,26 @@ def detect(src):
     k=cv2.waitKey(0)&0xFF
     #if k==27:
     #    break
+
+def imgPerspective(src):
+    roi=src[270:445,50:766]
+    cv2.imshow('roi',roi)
+    rows,cols=roi.shape[:2]
+    origin_pts=np.float32([[cols//3,0],[cols*2//3,0],[0,rows-1],[cols-1,rows-1]]) #(x,y)
+    destiny_pts=np.float32([[0,0],[300,0],[0,300],[300,300]])
+    transform_mat=cv2.getPerspectiveTransform(origin_pts,destiny_pts)
+    transform_mat=np.array(transform_mat)
+    print(transform_mat)
+    dst=src
+    dst=cv2.warpPerspective(roi,transform_mat,(cols,rows))
+    cv2.imshow('dst',dst)
+    cv2.waitKey(0)
+    
+    
     
 if __name__=='__main__':
-    imgPath='./13.png'
+    imgPath='./0.bmp'
     src=cv2.imread(imgPath)
-    detect(src)
-    
+    #detect(src)
+    imgPerspective(src)
     cv2.destroyAllWindows()
