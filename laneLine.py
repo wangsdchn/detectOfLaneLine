@@ -19,9 +19,9 @@ def detect(src):
         img0=cv2.erode(binImg,kernel,2)
         binImg=cv2.dilate(img0,kernel,2)
         img,contours,hieracy=cv2.findContours(binImg,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-        size=np.size(contours)
+        size=len(contours)  #列表长度使用len获取
         print(size)
-        for i in range(size//4-1):
+        for i in range(size):
             rect=cv2.minAreaRect(contours[i])
             box=cv2.boxPoints(rect)
             box=np.int0(box)
