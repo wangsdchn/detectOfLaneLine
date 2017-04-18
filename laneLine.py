@@ -87,14 +87,14 @@ def imgPerspective(src):
     transform_mat=np.array(transform_mat)
     print(transform_mat)
     dst=src
-    dst=cv2.warpPerspective(roi,transform_mat,(cols,rows))
+    dst=cv2.warpPerspective(roi,transform_mat,(300,300))
     cv2.imshow('dst',dst)
     cv2.waitKey(0)
     
     
     
 if __name__=='__main__':
-    imgPath='./0.bmp'
+    imgPath='./imgs/0.bmp'
     src=cv2.imread(imgPath)
     #detect(src)
     imgPerspective(src)
