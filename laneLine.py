@@ -92,9 +92,15 @@ def imgPerspective(src):
     cv2.waitKey(0)
     
     
-    
+"""
+     ----------->  X
+    |
+    |
+    |
+    Y
+"""
 if __name__=='__main__':
-    imgPath='./imgs/0.bmp'
+    imgPath='./imgs/17.bmp'
     src=cv2.imread(imgPath)
     #detect(src)
     imgPerspective(src)
