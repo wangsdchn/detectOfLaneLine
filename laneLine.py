@@ -10,7 +10,6 @@ def detect(src):
         gray=src
     rects=[]
     rows,cols=src.shape[:2]
-    print(cols,rows)
     thresh=250
     roi=gray[rows//2:rows-1,:]
     kernel=cv2.getStructuringElement(cv2.MORPH_RECT,(3,3),(1,1))
@@ -26,11 +25,7 @@ def detect(src):
         rect=cv2.minAreaRect(contours[i])
         box=cv2.boxPoints(rect)
         box=np.int0(box)
-        
-        #if box[0,0]<cols/20 or box[0,0]>cols*19/20:
-        #   continue
-        #if box[0,1]<rows*3/5:
-        #    continue
+
         w=np.sqrt(np.power((box[0,0]-box[1,0]),2)+np.power((box[0,1]-box[1,1]),2))
         h=np.sqrt(np.power((box[1,0]-box[2,0]),2)+np.power((box[1,1]-box[2,1]),2))
         if h<10*w and h>0.1*w:
@@ -44,23 +39,13 @@ def detect(src):
             slidRitio=0xFFFF
         else:
             slidRitio=vy/vx
-        #if slidRitio<0.25 and slidRitio>-0.25:
-        #    continue
+        if slidRitio<0.35 and slidRitio>-0.35:
+            continue
         up = int(((-y)/slidRitio) + x)
         low = int(((rows//2-y)/slidRitio)+x)
-        print(x,y,slidRitio)
-        rects.append([[up,(rows-1)//2,low,rows-1]])
-        cv2.line(src,(low,rows-1),(up,(rows//2)),(0,0,255),2)
-        #cv2.line(src,(maxRighty,rows),(maxLefty,rows//2),(0,0,255),2)
-    #print(rects)
-    maxX=0
-    maxY=0
-    maxSlidRitio=0
-    minSlidRitio=9999
-    minX=9999
-    minY=9999
-
-    
+        rects.append([up,(rows-1)//2,low,rows-1])
+        cv2.line(src,(low,rows-1),(up,((rows-1)//2)),(0,0,255),2)
+    print(rects)
     cv2.imshow('src',src)
     cv2.imshow('binImg',binImg)
     cv2.waitKey(0)
@@ -88,8 +73,8 @@ def imgPerspective(src):
     Y
 """
 if __name__=='__main__':
-    imgPath='./imgs/17.bmp'
+    imgPath='./imgs/0.bmp'
     src=cv2.imread(imgPath)
-    #detect(src)
-    imgPerspective(src)
+    detect(src)
+    #imgPerspective(src)
     cv2.destroyAllWindows()
