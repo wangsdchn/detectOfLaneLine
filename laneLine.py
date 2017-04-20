@@ -8,74 +8,62 @@ def detect(src):
         gray=cv2.cvtColor(src,cv2.COLOR_BGR2GRAY)
     else:
         gray=src
+    rects=[]
     rows,cols=src.shape[:2]
     print(cols,rows)
     thresh=250
-    roi=gray[rows//2:rows,:]
-    kernel=cv2.getStructuringElement(cv2.MORPH_RECT,(1,5),(0,2))
-    while thresh>=150:
-        thresh,binImg=cv2.threshold(roi,thresh,255,cv2.THRESH_OTSU)
-        thresh=5
-        img0=cv2.erode(binImg,kernel,2)
-        binImg=cv2.dilate(img0,kernel,2)
-        img,contours,hieracy=cv2.findContours(binImg,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-        size=len(contours)  #列表长度使用len获取
-        print(size)
-        for i in range(size):
-            rect=cv2.minAreaRect(contours[i])
-            box=cv2.boxPoints(rect)
-            box=np.int0(box)
-            
-            if box[0,0]<cols/20 or box[0,0]>cols*19/20:
-                continue
-            #if box[0,1]<rows*3/5:
-            #    continue
-            w=np.sqrt(np.power((box[0,0]-box[1,0]),2)+np.power((box[0,1]-box[1,1]),2))
-            h=np.sqrt(np.power((box[1,0]-box[2,0]),2)+np.power((box[1,1]-box[2,1]),2))
-            if h<10*w and h>0.1*w:
-                continue
-            if w*h<200:
-                continue
-            if w*h>cols*rows/20:
-                continue
-            [vx,vy,x,y] = cv2.fitLine(contours[i],cv2.DIST_L2,0,0.01,0.01)
-            if vx==0:
-                slidRitio=0xFFFF
-            else:
-                slidRitio=vy/vx
-            if slidRitio<0.25 and slidRitio>-0.25:
-                continue
-            maxX=0
-            maxY=0
-            maxSlidRitio=0
-            minSlidRitio=9999
-            minX=9999
-            minY=9999
-            if x>cols/2:
-                if minX>x:
-                    minX=x
-                    minSlidRitio=slidRitio
-                    minY=y
-            else:
-                if maxX<x:
-                    maxX=x
-                    maxSlidRitio=slidRitio
-                    maxY=y
-            cv2.imshow('binImg',binImg)
-            k=cv2.waitKey(0)&0xFF
-            if k==27:
-                break
-    #minLefty = int((-minY/minSlidRitio) + minX)
-    #minRighty = int(((rows//2-minY)/minSlidRitio)+minX)
-    #maxLefty = int((-maxY/maxSlidRitio) + maxX)
-    #maxRighty = int(((rows//2-maxY)/maxSlidRitio)+maxX)
-    #cv2.line(src,(minRighty,rows),(minLefty,rows//2),(0,0,255),2)
-    #cv2.line(src,(maxRighty,rows),(maxLefty,rows//2),(0,0,255),2)
+    roi=gray[rows//2:rows-1,:]
+    kernel=cv2.getStructuringElement(cv2.MORPH_RECT,(3,3),(1,1))
+
+    thresh,binImg=cv2.threshold(roi,thresh,255,cv2.THRESH_OTSU)
+    thresh=5
+    img0=cv2.erode(binImg,kernel,2)
+    binImg=cv2.dilate(img0,kernel,2)
+    img,contours,hieracy=cv2.findContours(binImg,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    size=len(contours)
+    print(size)
+    for i in range(size):
+        rect=cv2.minAreaRect(contours[i])
+        box=cv2.boxPoints(rect)
+        box=np.int0(box)
+        
+        #if box[0,0]<cols/20 or box[0,0]>cols*19/20:
+        #   continue
+        #if box[0,1]<rows*3/5:
+        #    continue
+        w=np.sqrt(np.power((box[0,0]-box[1,0]),2)+np.power((box[0,1]-box[1,1]),2))
+        h=np.sqrt(np.power((box[1,0]-box[2,0]),2)+np.power((box[1,1]-box[2,1]),2))
+        if h<10*w and h>0.1*w:
+            continue
+        if w*h<100:
+            continue
+        if w*h>cols*rows/10:
+            continue
+        [vx,vy,x,y] = cv2.fitLine(contours[i],cv2.DIST_L2,0,0.01,0.01)
+        if vx==0:
+            slidRitio=0xFFFF
+        else:
+            slidRitio=vy/vx
+        #if slidRitio<0.25 and slidRitio>-0.25:
+        #    continue
+        up = int(((-y)/slidRitio) + x)
+        low = int(((rows//2-y)/slidRitio)+x)
+        print(x,y,slidRitio)
+        rects.append([[up,(rows-1)//2,low,rows-1]])
+        cv2.line(src,(low,rows-1),(up,(rows//2)),(0,0,255),2)
+        #cv2.line(src,(maxRighty,rows),(maxLefty,rows//2),(0,0,255),2)
+    #print(rects)
+    maxX=0
+    maxY=0
+    maxSlidRitio=0
+    minSlidRitio=9999
+    minX=9999
+    minY=9999
+
+    
     cv2.imshow('src',src)
     cv2.imshow('binImg',binImg)
-    k=cv2.waitKey(0)&0xFF
-    #if k==27:
-    #    break
+    cv2.waitKey(0)
 
 def imgPerspective(src):
     roi=src[270:445,50:766]
