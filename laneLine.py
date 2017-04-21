@@ -11,8 +11,8 @@ def detect(src):
     rects=[]
     rows,cols=src.shape[:2]
     thresh=250
-    roi=gray[rows//2:rows-1,:]
-    kernel=cv2.getStructuringElement(cv2.MORPH_RECT,(3,3),(1,1))
+    roi=gray[rows//2:rows-50,:]
+    kernel=cv2.getStructuringElement(cv2.MORPH_RECT,(3,1),(1,0))
 
     thresh,binImg=cv2.threshold(roi,thresh,255,cv2.THRESH_OTSU)
     thresh=5
@@ -28,7 +28,7 @@ def detect(src):
 
         w=np.sqrt(np.power((box[0,0]-box[1,0]),2)+np.power((box[0,1]-box[1,1]),2))
         h=np.sqrt(np.power((box[1,0]-box[2,0]),2)+np.power((box[1,1]-box[2,1]),2))
-        if h<10*w and h>0.1*w:
+        if h<4*w and h>0.25*w:
             continue
         if w*h<100:
             continue
@@ -45,10 +45,10 @@ def detect(src):
         low = int(((rows//2-y)/slidRitio)+x)
         rects.append([up,(rows-1)//2,low,rows-1])
         cv2.line(src,(low,rows-1),(up,((rows-1)//2)),(0,0,255),2)
-    print(rects)
+    #print(rects)
     cv2.imshow('src',src)
     cv2.imshow('binImg',binImg)
-    cv2.waitKey(0)
+    #cv2.waitKey(0)
 
 def imgPerspective(src):
     roi=src[270:445,50:766]
@@ -73,8 +73,21 @@ def imgPerspective(src):
     Y
 """
 if __name__=='__main__':
-    imgPath='./imgs/0.bmp'
-    src=cv2.imread(imgPath)
-    detect(src)
+    #imgPath='./imgs/0.bmp'
+    #src=cv2.imread(imgPath)
+    videoPath='./lane.avi'
+    video=cv2.VideoCapture(videoPath)
+    if video.isOpened():
+        while True:
+            ret,src=video.read()
+            if ret==True:
+                detect(src)
+                #cv2.imshow('video',src)
+            else:
+                break
+            
+            if cv2.waitKey(30)&0xffff==27:
+                break
+    
     #imgPerspective(src)
     cv2.destroyAllWindows()
