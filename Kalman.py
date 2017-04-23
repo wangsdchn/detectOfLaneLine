@@ -1,64 +1,96 @@
+#!/usr/bin/env python
+"""
+   Tracking of rotating point.
+   Rotation speed is constant.
+   Both state and measurements vectors are 1D (a point angle),
+   Measurement is the real point angle + gaussian noise.
+   The real and the estimated points are connected with yellow line segment,
+   the real and the measured points are connected with red line segment.
+   (if Kalman filter works correctly,
+    the yellow segment should be shorter than the red one).
+   Pressing any key (except ESC) will reset the tracking with a different speed.
+   Pressing ESC will stop the program.
+"""
+# Python 2/3 compatibility
+import sys
+PY3 = sys.version_info[0] == 3
+
+if PY3:
+    long = int
+
 import cv2
+from math import cos, sin, sqrt
 import numpy as np
-class Kalman2D(object):  
-    ''''' 
-    A class for 2D Kalman filtering 
-    '''  
-  
-    def __init__(self, processNoiseCovariance=1e-4, measurementNoiseCovariance=1e-1, errorCovariancePost=0.1):  
-        ''''' 
-        Constructs a new Kalman2D object.   
-        For explanation of the error covariances see 
-        http://en.wikipedia.org/wiki/Kalman_filter 
-        '''  
-        # 状态空间：位置--2d,速度--2d
-        self.kalman = cv2.KalmanFilter(8, 4, 0)
-        self.kalman_state = np.array((8,1),np.float32)
-        self.kalman_process_noise = np.array((8,1),np.float32)   
-        self.kalman_measurement = np.array((4,1),np.float32)   
-  
-        for j in range(8):
-            for k in range(8):
-                self.kalmantransitionMatrix[j,k] = 0  
-            self.kalman.transitionMatrix[j,j] = 1  
-        #加入速度 x = x + vx, y = y + vy  
-        # 1,0,1,0,   0,1,0,1,  0,0,1,0,  0,0,0,1  
-        #如果把下面两句注释掉，那么位置跟踪kalman滤波器的状态模型就是没有使用速度信息  
-#        self.kalman.transition_matrix[0, 2]=1  
-#        self.kalman.transition_matrix[1, 3]=1  
-          
-        cv2.SetIdentity(self.kalman.measurement_matrix)  
-        #初始化带尺度的单位矩阵  
-        cv2.SetIdentity(self.kalman.processNoiseCov , cv2.RealScalar(processNoiseCovariance))  
-        cv2.SetIdentity(self.kalman.measurementNoiseCov , cv2.RealScalar(measurementNoiseCovariance))  
-        cv2.SetIdentity(self.kalman.error_cov_post, cv2.RealScalar(errorCovariancePost))  
-  
-        self.predicted = None  
-        self.esitmated = None  
-  
-    def update(self, x0, x1,x2,x3):  
-        ''''' 
-        Updates the filter with a new X,Y measurement 
-        '''  
-  
-        self.kalman_measurement[0, 0] = x0 
-        self.kalman_measurement[1, 0] = x1
-        self.kalman_measurement[2, 0] = x2 
-        self.kalman_measurement[3, 0] = x3 
-  
-        self.predicted = cv2.KalmanPredict(self.kalman)  
-        self.corrected = cv2.KalmanCorrect(self.kalman, self.kalman_measurement)  
-  
-    def getEstimate(self):  
-        ''''' 
-        Returns the current X,Y estimate. 
-        '''  
-  
-        return self.corrected[0,0], self.corrected[1,0], self.corrected[2,0], self.corrected[3,0]
-  
-    def getPrediction(self):  
-        ''''' 
-        Returns the current X,Y prediction. 
-        '''  
-  
-        return self.predicted[0,0], self.predicted[1,0], self.predicted[2,0], self.predicted[3,0]
+
+if __name__ == "__main__":
+
+    img_height = 500
+    img_width = 500
+    kalman = cv2.KalmanFilter(2, 1, 0)
+
+    code = long(-1)
+
+    cv2.namedWindow("Kalman")
+
+    while True:
+        state = 0.1 * np.random.randn(2, 1)
+
+        kalman.transitionMatrix = np.array([[1., 1.], [0., 1.]])
+        kalman.measurementMatrix = 1. * np.ones((1, 2))
+        kalman.processNoiseCov = 1e-5 * np.eye(2)
+        kalman.measurementNoiseCov = 1e-1 * np.ones((1, 1))
+        kalman.errorCovPost = 1. * np.ones((2, 2))
+        kalman.statePost = 0.1 * np.random.randn(2, 1)
+
+        while True:
+            def calc_point(angle):
+                return (np.around(img_width/2 + img_width/3*cos(angle), 0).astype(int),
+                        np.around(img_height/2 - img_width/3*sin(angle), 1).astype(int))
+
+            state_angle = state[0, 0]
+            state_pt = calc_point(state_angle)
+
+            prediction = kalman.predict()
+            predict_angle = prediction[0, 0]
+            predict_pt = calc_point(predict_angle)
+
+            measurement = kalman.measurementNoiseCov * np.random.randn(1, 1)
+
+            # generate measurement
+            measurement = np.dot(kalman.measurementMatrix, state) + measurement
+
+            measurement_angle = measurement[0, 0]
+            measurement_pt = calc_point(measurement_angle)
+
+            # plot points
+            def draw_cross(center, color, d):
+                cv2.line(img,
+                         (center[0] - d, center[1] - d), (center[0] + d, center[1] + d),
+                         color, 1, cv2.LINE_AA, 0)
+                cv2.line(img,
+                         (center[0] + d, center[1] - d), (center[0] - d, center[1] + d),
+                         color, 1, cv2.LINE_AA, 0)
+
+            img = np.zeros((img_height, img_width, 3), np.uint8)
+            draw_cross(np.int32(state_pt), (255, 255, 255), 3)
+            draw_cross(np.int32(measurement_pt), (0, 0, 255), 3)
+            draw_cross(np.int32(predict_pt), (0, 255, 0), 3)
+
+            cv2.line(img, state_pt, measurement_pt, (0, 0, 255), 3, cv2.LINE_AA, 0)
+            cv2.line(img, state_pt, predict_pt, (0, 255, 255), 3, cv2.LINE_AA, 0)
+
+            kalman.correct(measurement)
+
+            process_noise = sqrt(kalman.processNoiseCov[0,0]) * np.random.randn(2, 1)
+            state = np.dot(kalman.transitionMatrix, state) + process_noise
+
+            cv2.imshow("Kalman", img)
+
+            code = cv2.waitKey(100)
+            if code != -1:
+                break
+
+        if code in [27, ord('q'), ord('Q')]:
+            break
+
+    cv2.destroyWindow("Kalman")

@@ -74,44 +74,49 @@ def imgPerspective(src):
 """
 def videoDetect(videoPath):
     video=cv2.VideoCapture(videoPath)
-    mp = np.array((4,1), np.float32) # measurement
-    tp = np.zeros((4,1), np.float32) # tracked / prediction
-    kalman = cv2.KalmanFilter(8,4)
-    kalman.measurementMatrix = np.array([[1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,1,0,0,0,0]],np.float32)
-    kalman.transitionMatrix = np.array([[1,0,0,0,1,0,0,0],[0,1,0,0,0,1,0,0],[0,0,1,0,0,0,1,0],[0,0,0,1,0,0,0,1],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]],np.float32)
-    kalman.processNoiseCov = np.array([[1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,1,0,0,0,0],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]],np.float32) * 0.03
-    kalman.measurementNoiseCov = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32) * 0.00003
-    kalman.statePost=np.array([50,25,70,100])
-                                         
+    
+    state = 0.1 * np.random.randn(8, 1)
+    kalman = cv2.KalmanFilter(8,4,0)
+    kalman.measurementMatrix = 1. * np.ones((4, 8))
+    #kalman.measurementMatrix = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32)
+    kalman.transitionMatrix = 1.*np.array([[1,0,0,0,1,0,0,0],[0,1,0,0,0,1,0,0],[0,0,1,0,0,0,1,0],[0,0,0,1,0,0,0,1],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]])
+    kalman.processNoiseCov = 1e-5 * np.eye(8)
+    kalman.measurementNoiseCov = 1e-1 * np.ones((4, 4))
+    kalman.errorCovPost = 1. * np.ones((8, 8))
+    kalman.statePost=0.1 * np.random.randn(8, 1)
+    
     if video.isOpened():
-        while True:
-            mp=[]
-            tp=[]
+        while True:            
             rects=[1,1,1,1]
             ret,src=video.read()
             if ret==True:
-                rects_temp=rects
                 rects=detect(src)
                 rows,cols=src.shape[:2]
                 for i in range(0,len(rects),2):
                     up,low=rects[i:i+2]
                     cv2.line(src,(low+cols//8,rows-1),(up+cols//8,((rows)*3//5)),(0,0,255),2)
-                if len(rects)>=4:
+                if len(rects)==4:
                     x0,x1,x2,x3=rects[:4]
-                else:
-                    x0,x1,x2,x3=rects_temp[:4]
+                    flag=True
+                #else:
+                #    x0,x1,x2,x3=rects_temp[:4]
                 #print(rects)
-                mp = np.array([[np.float32(x0)],[np.float32(x1)],[np.float32(x2)],[np.float32(x3)]])
-                kalman.correct(mp)
-                tp = kalman.predict()
-                print(tp)
-                for i in range(0,len(tp),2):
-                    up,low=tp[i:i+2]
-                    cv2.line(src,(low+cols//8,rows-1),(up+cols//8,((rows)*3//5)),(0,255,0),2)
+                if flag:
+                    tp = kalman.predict()
+                    measurement = kalman.measurementNoiseCov * np.random.randn(4, 1)
+                    print(measurement)
+                    measurement = kalman.measurementMatrix * state + measurement
+                    print(measurement)
+                    kalman.correct(measurement)
+                    process_noise = np.sqrt(kalman.processNoiseCov[0,0]) * np.random.randn(8, 1)
+                    state = np.dot(kalman.transitionMatrix, state) + process_noise
+                    for i in range(0,len(tp),2):
+                        up,low=tp[i:i+2]
+                        cv2.line(src,(low+cols//8,rows-1),(up+cols//8,((rows)*3//5)),(0,255,0),1)
                 cv2.imshow('video',src)
             else:
                 break
-            if cv2.waitKey(1)&0xffff==27:
+            if cv2.waitKey(33)&0xffff==27:
                 break
 def tracking(kalman2d,rects):
     x0,x1,x2,x3=rects[:4]
