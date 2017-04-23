@@ -80,8 +80,9 @@ def videoDetect(videoPath):
     kalman.measurementMatrix = 1. * np.ones((4, 8))
     #kalman.measurementMatrix = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32)
     kalman.transitionMatrix = 1.*np.array([[1,0,0,0,1,0,0,0],[0,1,0,0,0,1,0,0],[0,0,1,0,0,0,1,0],[0,0,0,1,0,0,0,1],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]])
-    kalman.processNoiseCov = 1e-5 * np.eye(8)
-    kalman.measurementNoiseCov = 1e-1 * np.ones((4, 4))
+    kalman.processNoiseCov = 1e-5 * np.ones((8,8))
+    kalman.measurementNoiseCov = 1e-1 * np.ones((4,4))
+    #kalman.measurementNoiseCov = 1e-1 * np.ones((8,1))
     kalman.errorCovPost = 1. * np.ones((8, 8))
     kalman.statePost=0.1 * np.random.randn(8, 1)
     
@@ -103,9 +104,9 @@ def videoDetect(videoPath):
                 #print(rects)
                 if flag:
                     tp = kalman.predict()
-                    measurement = kalman.measurementNoiseCov * np.random.randn(4, 1)
-                    print(measurement)
-                    measurement = kalman.measurementMatrix * state + measurement
+                    #measurement = kalman.measurementNoiseCov * np.random.randn(4, 1)
+                    #print(measurement)
+                    measurement = np.dot(kalman.measurementMatrix , state) + kalman.measurementNoiseCov
                     print(measurement)
                     kalman.correct(measurement)
                     process_noise = np.sqrt(kalman.processNoiseCov[0,0]) * np.random.randn(8, 1)
