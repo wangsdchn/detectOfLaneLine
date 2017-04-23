@@ -41,7 +41,7 @@ def detect(src):
         if slidRitio<0.3 and slidRitio>-0.3:
             continue
         if slidRitio>5 or slidRitio<-5:
-           if box[0,0]<cols/2-25 or box[0,0]>cols/2+25:
+           if box[0,0]<cols/2-20 or box[0,0]>cols/2+20:
                continue
         up = int(((rows//10-y)/slidRitio) + x)
         low = int(((rows//2-y)/slidRitio)+x)
@@ -78,14 +78,16 @@ def videoDetect(videoPath):
     tp = np.zeros((4,1), np.float32) # tracked / prediction
     kalman = cv2.KalmanFilter(8,4)
     kalman.measurementMatrix = np.array([[1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,1,0,0,0,0]],np.float32)
-    kalman.transitionMatrix = np.ones((8,8),np.float32)
-    kalman.processNoiseCov = np.ones((8,8),np.float32) * 0.03
-    #kalman.measurementNoiseCov = np.array([[1,0],[0,1]],np.float32) * 0.00003
+    kalman.transitionMatrix = np.array([[1,0,0,0,1,0,0,0],[0,1,0,0,0,1,0,0],[0,0,1,0,0,0,1,0],[0,0,0,1,0,0,0,1],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]],np.float32)
+    kalman.processNoiseCov = np.array([[1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,1,0,0,0,0],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]],np.float32) * 0.03
+    kalman.measurementNoiseCov = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32) * 0.00003
+    kalman.statePost=np.array([50,25,70,100])
+                                         
     if video.isOpened():
         while True:
             mp=[]
             tp=[]
-            rects=[0,0,0,0]
+            rects=[1,1,1,1]
             ret,src=video.read()
             if ret==True:
                 rects_temp=rects
@@ -98,16 +100,17 @@ def videoDetect(videoPath):
                     x0,x1,x2,x3=rects[:4]
                 else:
                     x0,x1,x2,x3=rects_temp[:4]
+                #print(rects)
                 mp = np.array([[np.float32(x0)],[np.float32(x1)],[np.float32(x2)],[np.float32(x3)]])
                 kalman.correct(mp)
                 tp = kalman.predict()
                 print(tp)
                 for i in range(0,len(tp),2):
                     up,low=tp[i:i+2]
-                    cv2.line(src,(low+cols//8,rows-1),(up+cols//8,((rows)*3//5)),(0,0,255),2)
+                    cv2.line(src,(low+cols//8,rows-1),(up+cols//8,((rows)*3//5)),(0,255,0),2)
                 cv2.imshow('video',src)
             else:
-                break            
+                break
             if cv2.waitKey(1)&0xffff==27:
                 break
 def tracking(kalman2d,rects):
