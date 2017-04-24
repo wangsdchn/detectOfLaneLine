@@ -75,22 +75,18 @@ def imgPerspective(src):
 def videoDetect(videoPath):
     video=cv2.VideoCapture(videoPath)
     
-    state = 0.1 * np.random.randn(8, 1)
     kalman = cv2.KalmanFilter(8,4,0)
-    kalman.measurementMatrix = 1. * np.ones((4, 8))
-    #kalman.measurementMatrix = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],np.float32)
+    kalman.measurementMatrix = 1. * np.array([[1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,1,0,0,0,0]])
     kalman.transitionMatrix = 1.*np.array([[1,0,0,0,1,0,0,0],[0,1,0,0,0,1,0,0],[0,0,1,0,0,0,1,0],[0,0,0,1,0,0,0,1],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]])
-    kalman.processNoiseCov = 1e-5 * np.ones((8,8))
+    kalman.processNoiseCov = 1e-5 * np.eye(8)
     kalman.measurementNoiseCov = 1e-1 * np.ones((4,4))
-    #kalman.measurementNoiseCov = 1e-1 * np.ones((8,1))
     kalman.errorCovPost = 1. * np.ones((8, 8))
     kalman.statePost=0.1 * np.random.randn(8, 1)
     firFlag=False
-    detectFlag=True
+    detectFlag=0
     if video.isOpened():
-        while True:            
+        while True:
             rects=[1,1,1,1]
-            rects_temp=rects
             ret,src=video.read()
             if ret==True:
                 rects=detect(src)
@@ -99,30 +95,27 @@ def videoDetect(videoPath):
                     up,low=rects[i:i+2]
                     cv2.line(src,(low+cols//8,rows-1),(up+cols//8,((rows)*3//5)),(0,0,255),2)
                 if len(rects)==4:
-                    x0,x1,x2,x3=rects[:4]
-                    firFlag=True
-                    detectFlag=True
-                else:
-                    x0,x1,x2,x3=rects_temp[:4]
-                    detectFlag=False
-                #print(rects)
+                    x0,x1,x2,x3=rects[:4]                    
+                    if detectFlag==0:
+                        detectFlag=1
+                        firFlag=True
+                if detectFlag==1:
+                    kalman.statePost=np.transpose(1.*np.array([[x0,x1,x2,x3,1.0,2.1,1.2,0.1]]))
+                    detectFlag==2
                 if firFlag:
                     tp = kalman.predict()
-                    measurement = np.dot(kalman.measurementNoiseCov , np.random.randn(4, 1))
-                    print(measurement)
-                    measurement = np.dot(kalman.measurementMatrix , state) + measurement
+                    measurement=np.transpose(1.0*np.array([[x0,x1,x2,x3]]))
                     print(measurement)
                     kalman.correct(measurement)
-                    process_noise = np.sqrt(kalman.processNoiseCov[0,0]) * np.random.randn(8, 1)
-                    state[:4]=np.transpose([x0,x1,x2,x3])
-                    state = np.dot(kalman.transitionMatrix, state) + process_noise
-                    for i in range(0,len(tp),2):
+                    #process_noise = np.sqrt(kalman.processNoiseCov[0,0]) * np.random.randn(8, 1)
+                    #state = np.dot(kalman.transitionMatrix, state) + process_noise
+                    for i in range(0,4,2):
                         up,low=tp[i:i+2]
-                        cv2.line(src,(low+cols//8,rows-1),(up+cols//8,((rows)*3//5)),(0,255,0),1)
+                        cv2.line(src,(low+cols//8,rows-1),(up+cols//8,((rows)*3//5)),(0,255,0),2)
                 cv2.imshow('video',src)
             else:
                 break
-            if cv2.waitKey(30)&0xffff==27:
+            if cv2.waitKey(1)&0xffff==27:
                 break
 def tracking(kalman2d,rects):
     x0,x1,x2,x3=rects[:4]
