@@ -85,10 +85,12 @@ def videoDetect(videoPath):
     #kalman.measurementNoiseCov = 1e-1 * np.ones((8,1))
     kalman.errorCovPost = 1. * np.ones((8, 8))
     kalman.statePost=0.1 * np.random.randn(8, 1)
-    
+    firFlag=False
+    detectFlag=True
     if video.isOpened():
         while True:            
             rects=[1,1,1,1]
+            rects_temp=rects
             ret,src=video.read()
             if ret==True:
                 rects=detect(src)
@@ -98,18 +100,21 @@ def videoDetect(videoPath):
                     cv2.line(src,(low+cols//8,rows-1),(up+cols//8,((rows)*3//5)),(0,0,255),2)
                 if len(rects)==4:
                     x0,x1,x2,x3=rects[:4]
-                    flag=True
-                #else:
-                #    x0,x1,x2,x3=rects_temp[:4]
+                    firFlag=True
+                    detectFlag=True
+                else:
+                    x0,x1,x2,x3=rects_temp[:4]
+                    detectFlag=False
                 #print(rects)
-                if flag:
+                if firFlag:
                     tp = kalman.predict()
-                    #measurement = kalman.measurementNoiseCov * np.random.randn(4, 1)
-                    #print(measurement)
-                    measurement = np.dot(kalman.measurementMatrix , state) + kalman.measurementNoiseCov
+                    measurement = np.dot(kalman.measurementNoiseCov , np.random.randn(4, 1))
+                    print(measurement)
+                    measurement = np.dot(kalman.measurementMatrix , state) + measurement
                     print(measurement)
                     kalman.correct(measurement)
                     process_noise = np.sqrt(kalman.processNoiseCov[0,0]) * np.random.randn(8, 1)
+                    state[:4]=np.transpose([x0,x1,x2,x3])
                     state = np.dot(kalman.transitionMatrix, state) + process_noise
                     for i in range(0,len(tp),2):
                         up,low=tp[i:i+2]
@@ -117,7 +122,7 @@ def videoDetect(videoPath):
                 cv2.imshow('video',src)
             else:
                 break
-            if cv2.waitKey(33)&0xffff==27:
+            if cv2.waitKey(30)&0xffff==27:
                 break
 def tracking(kalman2d,rects):
     x0,x1,x2,x3=rects[:4]

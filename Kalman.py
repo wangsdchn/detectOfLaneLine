@@ -55,10 +55,10 @@ if __name__ == "__main__":
             predict_pt = calc_point(predict_angle)
 
             measurement = kalman.measurementNoiseCov * np.random.randn(1, 1)
-
+            print(measurement)
             # generate measurement
             measurement = np.dot(kalman.measurementMatrix, state) + measurement
-
+            print(measurement)
             measurement_angle = measurement[0, 0]
             measurement_pt = calc_point(measurement_angle)
 
