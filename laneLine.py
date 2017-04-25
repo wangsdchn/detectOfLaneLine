@@ -49,7 +49,7 @@ def detect(src):
         rects.append(low)
         
     
-    cv2.imshow('binImg',binImg)
+    #cv2.imshow('binImg',binImg)
     return rects
 
 def imgPerspective(src):
@@ -63,8 +63,8 @@ def imgPerspective(src):
     print(transform_mat)
     dst=src
     dst=cv2.warpPerspective(roi,transform_mat,(300,300))
-    cv2.imshow('dst',dst)
-    cv2.waitKey(0)
+    #cv2.imshow('dst',dst)
+    #cv2.waitKey(0)
 """
      ----------->  X
     |
@@ -75,6 +75,9 @@ def imgPerspective(src):
 def videoDetect(videoPath):
     video=cv2.VideoCapture(videoPath)
     
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    out = cv2.VideoWriter('output.avi',fourcc, 30.0, (856,480))
+    
     kalman = cv2.KalmanFilter(8,4,0)
     kalman.measurementMatrix = 1. * np.array([[1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,1,0,0,0,0]])
     kalman.transitionMatrix = 1.*np.array([[1,0,0,0,1,0,0,0],[0,1,0,0,0,1,0,0],[0,0,1,0,0,0,1,0],[0,0,0,1,0,0,0,1],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]])
@@ -84,8 +87,10 @@ def videoDetect(videoPath):
     kalman.statePost=0.1 * np.random.randn(8, 1)
     firFlag=False
     detectFlag=0
+    k=0
     if video.isOpened():
         while True:
+            k += 1
             rects=[1,1,1,1]
             ret,src=video.read()
             if ret==True:
@@ -105,18 +110,22 @@ def videoDetect(videoPath):
                 if firFlag:
                     tp = kalman.predict()
                     measurement=np.transpose(1.0*np.array([[x0,x1,x2,x3]]))
-                    print(measurement)
+                    #print(measurement)
                     kalman.correct(measurement)
                     #process_noise = np.sqrt(kalman.processNoiseCov[0,0]) * np.random.randn(8, 1)
                     #state = np.dot(kalman.transitionMatrix, state) + process_noise
                     for i in range(0,4,2):
                         up,low=tp[i:i+2]
                         cv2.line(src,(low+cols//8,rows-1),(up+cols//8,((rows)*3//5)),(0,255,0),2)
-                cv2.imshow('video',src)
+                #cv2.imshow('video',src)
             else:
                 break
-            if cv2.waitKey(1)&0xffff==27:
-                break
+            if k<3000:
+                out.write(src)
+            #if cv2.waitKey(1)&0xffff==27:
+            #    break
+    video.release()
+    out.release()
 def tracking(kalman2d,rects):
     x0,x1,x2,x3=rects[:4]
     kalman_points = []
