@@ -79,14 +79,15 @@ def videoDetect(videoPath):
     out = cv2.VideoWriter('output.avi',fourcc, 30.0, (856,480))
     
     kalman = cv2.KalmanFilter(8,4,0)
+    
     kalman.measurementMatrix = 1. * np.array([[1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,1,0,0,0,0]])
-    kalman.transitionMatrix = 1.*np.array([[1,0,0,0,1,0,0,0],[0,1,0,0,0,1,0,0],[0,0,1,0,0,0,1,0],[0,0,0,1,0,0,0,1],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]])
-    kalman.processNoiseCov = 0.1 * np.eye(8)
-    kalman.measurementNoiseCov = 0.001 * np.eye(4)
+    #kalman.transitionMatrix = 1.*np.array([[1,0,0,0,1,0,0,0],[0,1,0,0,0,1,0,0],[0,0,1,0,0,0,1,0],[0,0,0,1,0,0,0,1],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]])
+    kalman.transitionMatrix = 1.*np.eye(8)
+    kalman.processNoiseCov = 1e-5 * np.eye(8)
+    kalman.measurementNoiseCov = 1e-1 * np.eye(4)
     kalman.errorCovPost = 1. * np.ones((8, 8))
     kalman.statePost=0.1 * np.random.randn(8, 1)
-    firFlag=False
-    detectFlag=0
+
     k=0
     if video.isOpened():
         while True:
@@ -105,16 +106,16 @@ def videoDetect(videoPath):
                         k=k+1
                 if k==1:
                     print(k)
-                    kalman.statePost=np.transpose(1.*np.array([[x0,x1,x2,x3,1.0,2.1,1.2,0.1]]))
-                    detectFlag==2
+                    state=np.transpose(1.*np.array([[x0,x1,x2,x3,0,0,0,0]]))
+                    kalman.statePost=np.transpose(1.*np.array([[x0,x1,x2,x3,0,0,0,0]]))
                 if k>0:
                     tp = kalman.predict()
-                    state=np.transpose(0.5*np.array([[x0,x1,x2,x3,0,0,0,0]]))
-                    measurement = np.dot(kalman.measurementMatrix, state)+np.dot(kalman.measurementNoiseCov,np.random.randn(4, 1))
-                    #print(measurement)
+                    measurement = np.dot(kalman.measurementNoiseCov, np.transpose(1.*np.array([[x0,x1,x2,x3]])))
+                    measurement = np.dot(kalman.measurementMatrix, state) + measurement
+                    print(tp)
                     kalman.correct(measurement)
-                    #process_noise = np.sqrt(kalman.processNoiseCov[0,0]) * np.random.randn(8, 1)
-                    #state = np.dot(kalman.transitionMatrix, state) + process_noise
+                    process_noise = np.sqrt(kalman.processNoiseCov[0,0])# * np.random.randn(8, 1)
+                    state = np.dot(kalman.transitionMatrix, state) + process_noise
                     for i in range(0,4,2):
                         up,low=tp[i:i+2]
                         cv2.line(src,(low+cols//8,rows-1),(up+cols//8,((rows)*3//5)),(0,255,0),2)
