@@ -10,7 +10,7 @@ def detect(src):
         gray=src
     rows,cols=src.shape[:2]
     thresh=250
-    rects=[]
+    rects=[0,0,0,0]
     roi=gray[rows//2:rows-50,cols//8:cols*7//8]
     kernel=cv2.getStructuringElement(cv2.MORPH_RECT,(3,1),(1,0))
 
@@ -41,13 +41,17 @@ def detect(src):
         if slidRitio<0.3 and slidRitio>-0.3:
             continue
         if slidRitio>5 or slidRitio<-5:
-           if box[0,0]<cols/2-20 or box[0,0]>cols/2+20:
+           if box[0,0]<cols/2-1 or box[0,0]>cols/2+1:
                continue
+        print(box[0,0])
         up = int(((rows//10-y)/slidRitio) + x)
         low = int(((rows//2-y)/slidRitio)+x)
-        rects.append(up)
-        rects.append(low)
-        
+        if slidRitio<0:
+            rects[0]=up
+            rects[1]=low
+        else:
+            rects[2]=up
+            rects[3]=low
     
     #cv2.imshow('binImg',binImg)
     return rects
@@ -63,8 +67,8 @@ def imgPerspective(src):
     print(transform_mat)
     dst=src
     dst=cv2.warpPerspective(roi,transform_mat,(300,300))
-    #cv2.imshow('dst',dst)
-    #cv2.waitKey(0)
+    cv2.imshow('dst',dst)
+    cv2.waitKey(0)
 """
      ----------->  X
     |
@@ -80,19 +84,20 @@ def videoDetect(videoPath):
     
     kalman = cv2.KalmanFilter(8,4,0)
     
-    kalman.measurementMatrix = 1. * np.array([[1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,1,0,0,0,0]])
-    #kalman.transitionMatrix = 1.*np.array([[1,0,0,0,1,0,0,0],[0,1,0,0,0,1,0,0],[0,0,1,0,0,0,1,0],[0,0,0,1,0,0,0,1],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]])
-    kalman.transitionMatrix = 1.*np.eye(8)
+    #kalman.measurementMatrix = 1. * np.array([[1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,1,0,0,0,0]])
+    kalman.measurementMatrix = 1.*np.eye(4,8)
+    kalman.transitionMatrix = 1.*np.array([[1,0,0,0,1,0,0,0],[0,1,0,0,0,1,0,0],[0,0,1,0,0,0,1,0],[0,0,0,1,0,0,0,1],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]])
+    #kalman.transitionMatrix = 1.*np.eye(8)
     kalman.processNoiseCov = 1e-5 * np.eye(8)
     kalman.measurementNoiseCov = 1e-1 * np.eye(4)
     kalman.errorCovPost = 1. * np.ones((8, 8))
-    kalman.statePost=0.1 * np.random.randn(8, 1)
+    #kalman.statePost=0.1 * np.random.randn(8, 1)
 
     k=0
+    rects=[1,1,1,1]
     if video.isOpened():
         while True:
-            k += 1
-            rects=[1,1,1,1]
+                        
             ret,src=video.read()
             if ret==True:
                 rects=detect(src)
@@ -103,22 +108,23 @@ def videoDetect(videoPath):
                 if len(rects)==4:
                     x0,x1,x2,x3=rects[:4]                    
                     if k==0:
-                        k=k+1
+                        k+=1
                 if k==1:
                     print(k)
-                    state=np.transpose(1.*np.array([[x0,x1,x2,x3,0,0,0,0]]))
-                    kalman.statePost=np.transpose(1.*np.array([[x0,x1,x2,x3,0,0,0,0]]))
+                    k=2
+                    state=np.transpose(1.*np.array([[x0,x1,x2,x3,0.1,0.1,0.1,0.1]]))
+                    kalman.statePost=np.transpose(1.*np.array([[x0,x1,x2,x3,0.1,0.1,0.1,0.1]]))
                 if k>0:
                     tp = kalman.predict()
                     measurement = np.dot(kalman.measurementNoiseCov, np.transpose(1.*np.array([[x0,x1,x2,x3]])))
                     measurement = np.dot(kalman.measurementMatrix, state) + measurement
-                    print(tp)
+                    #print(tp)
                     kalman.correct(measurement)
-                    process_noise = np.sqrt(kalman.processNoiseCov[0,0])# * np.random.randn(8, 1)
+                    process_noise = np.sqrt(kalman.processNoiseCov[0,0]) * np.random.randn(8, 1)
                     state = np.dot(kalman.transitionMatrix, state) + process_noise
                     for i in range(0,4,2):
                         up,low=tp[i:i+2]
-                        cv2.line(src,(low+cols//8,rows-1),(up+cols//8,((rows)*3//5)),(0,255,0),2)
+                        cv2.line(src,(low+cols//16,rows-1),(up+cols//16,((rows)*3//5)),(0,255,0),2)
                 cv2.imshow('video',src)
             else:
                 break
