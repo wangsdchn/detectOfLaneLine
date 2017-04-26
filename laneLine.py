@@ -43,7 +43,7 @@ def detect(src):
         if slidRitio>5 or slidRitio<-5:
            if box[0,0]<cols/2-1 or box[0,0]>cols/2+1:
                continue
-        print(box[0,0])
+        #print(box[0,0])
         up = int(((rows//10-y)/slidRitio) + x)
         low = int(((rows//2-y)/slidRitio)+x)
         if slidRitio<0:
@@ -86,11 +86,11 @@ def videoDetect(videoPath):
     
     #kalman.measurementMatrix = 1. * np.array([[1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,1,0,0,0,0]])
     kalman.measurementMatrix = 1.*np.eye(4,8)
-    kalman.transitionMatrix = 1.*np.array([[1,0,0,0,1,0,0,0],[0,1,0,0,0,1,0,0],[0,0,1,0,0,0,1,0],[0,0,0,1,0,0,0,1],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]])
+    kalman.transitionMatrix = 1.*np.array([[1,0,0,0,20,0,0,0],[0,1,0,0,0,20,0,0],[0,0,1,0,0,0,20,0],[0,0,0,1,0,0,0,20],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]])
     #kalman.transitionMatrix = 1.*np.eye(8)
     kalman.processNoiseCov = 1e-5 * np.eye(8)
     kalman.measurementNoiseCov = 1e-1 * np.eye(4)
-    kalman.errorCovPost = 1. * np.ones((8, 8))
+    kalman.errorCovPost = 1. * np.eye(8)
     #kalman.statePost=0.1 * np.random.randn(8, 1)
 
     k=0
@@ -116,9 +116,9 @@ def videoDetect(videoPath):
                     kalman.statePost=np.transpose(1.*np.array([[x0,x1,x2,x3,0.1,0.1,0.1,0.1]]))
                 if k>0:
                     tp = kalman.predict()
-                    measurement = np.dot(kalman.measurementNoiseCov, np.transpose(1.*np.array([[x0,x1,x2,x3]])))
+                    measurement = np.sqrt(kalman.measurementNoiseCov[0,0]) * np.transpose(1.*np.array([[x0,x1,x2,x3]]))
                     measurement = np.dot(kalman.measurementMatrix, state) + measurement
-                    #print(tp)
+                    print(tp)
                     kalman.correct(measurement)
                     process_noise = np.sqrt(kalman.processNoiseCov[0,0]) * np.random.randn(8, 1)
                     state = np.dot(kalman.transitionMatrix, state) + process_noise
