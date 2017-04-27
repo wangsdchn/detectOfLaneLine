@@ -20,6 +20,7 @@ def detect(src):
     binImg=cv2.dilate(img0,kernel,1)
     img,contours,hieracy=cv2.findContours(binImg,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
     size=len(contours)
+    k=0
     for i in range(size):
         rect=cv2.minAreaRect(contours[i])
         box=cv2.boxPoints(rect)
@@ -40,12 +41,13 @@ def detect(src):
             slidRitio=vy/vx
         if slidRitio<0.3 and slidRitio>-0.3:
             continue
-        if slidRitio>5 or slidRitio<-5:
-           if box[0,0]<cols/2-1 or box[0,0]>cols/2+1:
+        if (box[0,0]>cols/2+100 or box[0,0]>cols/2+100) and np.abs(slidRitio)>1.2:
                continue
+        #print(box[0,0],slidRitio)
         #print(box[0,0])
         up = int(((rows//10-y)/slidRitio) + x)
         low = int(((rows//2-y)/slidRitio)+x)
+        k += 1
         if slidRitio<0:
             rects[0]=up
             rects[1]=low
@@ -54,7 +56,7 @@ def detect(src):
             rects[3]=low
     
     #cv2.imshow('binImg',binImg)
-    return rects
+    return rects,k
 
 def imgPerspective(src):
     roi=src[270:445,50:766]
@@ -86,7 +88,7 @@ def videoDetect(videoPath):
     
     #kalman.measurementMatrix = 1. * np.array([[1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,1,0,0,0,0]])
     kalman.measurementMatrix = 1.*np.eye(4,8)
-    kalman.transitionMatrix = 1.*np.array([[1,0,0,0,0.20,0,0,0],[0,1,0,0,0,0.20,0,0],[0,0,1,0,0,0,0.20,0],[0,0,0,1,0,0,0,0.20],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]])
+    kalman.transitionMatrix = 1.*np.array([[1,0,0,0,0.1,0,0,0],[0,1,0,0,0,0.1,0,0],[0,0,1,0,0,0,0.1,0],[0,0,0,1,0,0,0,0.1],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]])
     #kalman.transitionMatrix = 1.*np.eye(8)
     kalman.processNoiseCov = 1e-5 * np.eye(8)
     kalman.measurementNoiseCov = 1e-1 * np.eye(4)
@@ -100,33 +102,34 @@ def videoDetect(videoPath):
                         
             ret,src=video.read()
             if ret==True:
-                rects=detect(src)
-                rows,cols=src.shape[:2]
-                for i in range(0,len(rects),2):
-                    up,low=rects[i:i+2]
-                    #cv2.line(src,(low+cols//8,rows-1),(up+cols//8,((rows)*3//5)),(0,0,255),2)
-                if len(rects)==4:
-                    x0,x1,x2,x3=rects[:4]                    
+                rects,ret=detect(src)
+                rows,cols=src.shape[:2]                
+                if ret==2:
+                    x0,x1,x2,x3=rects[:4]
                     if k==0:
                         k+=1
+                    for i in range(0,len(rects),2):
+                        up,low=rects[i:i+2]
+                        cv2.line(src,(low+cols//8,rows-1),(up+cols//8,((rows)*3//5)),(0,0,255),2)
+                    
                 if k==1:
                     print(k)
                     k=2
                     kalman.statePost=np.transpose(1.*np.array([[x0,x1,x2,x3,0.1,0.1,0.1,0.1]]))
                 if k>0:
                     tp = kalman.predict()
-                    measurement = np.sqrt(kalman.measurementNoiseCov[0,0])+np.random.randn(4,1)
-                    measurement = np.dot(kalman.measurementMatrix, np.transpose(1.*np.array([[x0,x1,x2,x3,0,0,0,0]]))) + measurement
-                    print(tp)
-                    kalman.correct(measurement)
+                    if ret==2:
+                        measurement = np.sqrt(kalman.measurementNoiseCov[0,0])+np.random.randn(4,1)
+                        measurement = np.dot(kalman.measurementMatrix, np.transpose(1.*np.array([[x0,x1,x2,x3,0,0,0,0]]))) + measurement
+                        kalman.correct(measurement)
                     for i in range(0,4,2):
                         up,low=tp[i:i+2]
                         cv2.line(src,(low+cols//8,rows-1),(up+cols//8,((rows)*3//5)),(0,255,0),2)
-                cv2.imshow('video',src)
+                #cv2.imshow('video',src)
             else:
                 break
             #if k<3000:
-            #    out.write(src)
+            out.write(src)
             if cv2.waitKey(20)&0xffff==27:
                 break
     video.release()
