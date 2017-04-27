@@ -86,7 +86,7 @@ def videoDetect(videoPath):
     
     #kalman.measurementMatrix = 1. * np.array([[1,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0],[0,0,1,0,0,0,0,0],[0,0,0,1,0,0,0,0]])
     kalman.measurementMatrix = 1.*np.eye(4,8)
-    kalman.transitionMatrix = 1.*np.array([[1,0,0,0,20,0,0,0],[0,1,0,0,0,20,0,0],[0,0,1,0,0,0,20,0],[0,0,0,1,0,0,0,20],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]])
+    kalman.transitionMatrix = 1.*np.array([[1,0,0,0,0.20,0,0,0],[0,1,0,0,0,0.20,0,0],[0,0,1,0,0,0,0.20,0],[0,0,0,1,0,0,0,0.20],[0,0,0,0,1,0,0,0],[0,0,0,0,0,1,0,0],[0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,1]])
     #kalman.transitionMatrix = 1.*np.eye(8)
     kalman.processNoiseCov = 1e-5 * np.eye(8)
     kalman.measurementNoiseCov = 1e-1 * np.eye(4)
@@ -104,7 +104,7 @@ def videoDetect(videoPath):
                 rows,cols=src.shape[:2]
                 for i in range(0,len(rects),2):
                     up,low=rects[i:i+2]
-                    cv2.line(src,(low+cols//8,rows-1),(up+cols//8,((rows)*3//5)),(0,0,255),2)
+                    #cv2.line(src,(low+cols//8,rows-1),(up+cols//8,((rows)*3//5)),(0,0,255),2)
                 if len(rects)==4:
                     x0,x1,x2,x3=rects[:4]                    
                     if k==0:
@@ -116,15 +116,15 @@ def videoDetect(videoPath):
                     kalman.statePost=np.transpose(1.*np.array([[x0,x1,x2,x3,0.1,0.1,0.1,0.1]]))
                 if k>0:
                     tp = kalman.predict()
-                    measurement = np.sqrt(kalman.measurementNoiseCov[0,0]) * np.transpose(1.*np.array([[x0,x1,x2,x3]]))
-                    measurement = np.dot(kalman.measurementMatrix, state) + measurement
+                    measurement = np.sqrt(kalman.measurementNoiseCov[0,0])+np.random.randn(4,1)
+                    measurement = np.dot(kalman.measurementMatrix, np.transpose(1.*np.array([[x0,x1,x2,x3,0,0,0,0]]))) + measurement
                     print(tp)
                     kalman.correct(measurement)
                     process_noise = np.sqrt(kalman.processNoiseCov[0,0]) * np.random.randn(8, 1)
                     state = np.dot(kalman.transitionMatrix, state) + process_noise
                     for i in range(0,4,2):
                         up,low=tp[i:i+2]
-                        cv2.line(src,(low+cols//16,rows-1),(up+cols//16,((rows)*3//5)),(0,255,0),2)
+                        cv2.line(src,(low+cols//8,rows-1),(up+cols//8,((rows)*3//5)),(0,255,0),2)
                 cv2.imshow('video',src)
             else:
                 break

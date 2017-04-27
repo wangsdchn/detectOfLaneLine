@@ -76,17 +76,19 @@ if __name__ == "__main__":
             draw_cross(np.int32(measurement_pt), (0, 0, 255), 3)
             draw_cross(np.int32(predict_pt), (0, 255, 0), 3)
 
-            cv2.line(img, state_pt, measurement_pt, (0, 0, 255), 3, cv2.LINE_AA, 0)
-            cv2.line(img, state_pt, predict_pt, (0, 255, 255), 3, cv2.LINE_AA, 0)
+            #cv2.line(img, state_pt, measurement_pt, (0, 0, 255), 3, cv2.LINE_AA, 0)
+            #cv2.line(img, state_pt, predict_pt, (0, 255, 255), 3, cv2.LINE_AA, 0)
 
             kalman.correct(measurement)
 
             process_noise = sqrt(kalman.processNoiseCov[0,0]) * np.random.randn(2, 1)
+            state[0,0] += 0.1
+            #state[1,0] += 1
             state = np.dot(kalman.transitionMatrix, state) + process_noise
 
             cv2.imshow("Kalman", img)
 
-            code = cv2.waitKey(100)
+            code = cv2.waitKey(1000)
             if code != -1:
                 break
 
