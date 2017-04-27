@@ -112,7 +112,6 @@ def videoDetect(videoPath):
                 if k==1:
                     print(k)
                     k=2
-                    state=np.transpose(1.*np.array([[x0,x1,x2,x3,0.1,0.1,0.1,0.1]]))
                     kalman.statePost=np.transpose(1.*np.array([[x0,x1,x2,x3,0.1,0.1,0.1,0.1]]))
                 if k>0:
                     tp = kalman.predict()
@@ -120,8 +119,6 @@ def videoDetect(videoPath):
                     measurement = np.dot(kalman.measurementMatrix, np.transpose(1.*np.array([[x0,x1,x2,x3,0,0,0,0]]))) + measurement
                     print(tp)
                     kalman.correct(measurement)
-                    process_noise = np.sqrt(kalman.processNoiseCov[0,0]) * np.random.randn(8, 1)
-                    state = np.dot(kalman.transitionMatrix, state) + process_noise
                     for i in range(0,4,2):
                         up,low=tp[i:i+2]
                         cv2.line(src,(low+cols//8,rows-1),(up+cols//8,((rows)*3//5)),(0,255,0),2)
