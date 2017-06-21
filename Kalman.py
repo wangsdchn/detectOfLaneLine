@@ -70,7 +70,7 @@ if __name__ == "__main__":
                 cv2.line(img,
                          (center[0] + d, center[1] - d), (center[0] - d, center[1] + d),
                          color, 1, cv2.LINE_AA, 0)
-
+			
             img = np.zeros((img_height, img_width, 3), np.uint8)
             draw_cross(np.int32(state_pt), (255, 255, 255), 3)
             draw_cross(np.int32(measurement_pt), (0, 0, 255), 3)
